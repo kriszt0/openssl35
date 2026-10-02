@@ -11,7 +11,7 @@ command -v podman >/dev/null || { echo "HIBA: podman nincs telepítve" >&2; exit
 echo "== 1/4 forrás ellenőrzése"
 echo "$SHA256  $TARBALL" | sha256sum -c -
 
-BASE_IMAGE="${BUILD_BASE_IMAGE:-docker.io/library/oraclelinux:7}"
+BASE_IMAGE="${BUILD_BASE_IMAGE:-container-registry.oracle.com/os/oraclelinux:7}"
 VERIFY_IMAGE="${VERIFY_IMAGE:-registry.access.redhat.com/ubi7/ubi}"
 TAG="localhost/rpm-builder-el7:$(sha256sum Containerfile.builder | cut -c1-12)"
 OUT="$PWD/out"

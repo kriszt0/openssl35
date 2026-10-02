@@ -33,3 +33,11 @@ közölt kiadási kulccsal: `gpg --verify openssl-3.5.9.tar.gz.asc openssl-3.5.9
 
 ## Új verzió
 Cseréld a tarballt, és írd át a `pkg.env`-ben: VERSION, TARBALL, SHA256.
+
+## Image források (nincs Docker Hub)
+Az alapértelmezett build image: `container-registry.oracle.com/os/oraclelinux:7` (Oracle Container Registry, bejelentkezés nélkül).
+A verify image: `registry.access.redhat.com/ubi7/ubi` (Red Hat registry).
+Más forrás (pl. belső mirror) megadása:
+    BUILD_BASE_IMAGE=ghcr.io/oracle/oraclelinux:7-slim ./build.sh
+    BUILD_BASE_IMAGE=registry.cegnev.local/oraclelinux:7 VERIFY_IMAGE=registry.cegnev.local/ubi7/ubi ./build.sh
+Mindig teljes (registry-vel kezdődő) nevet adj meg, különben a podman a registries.conf szerint találgat.
