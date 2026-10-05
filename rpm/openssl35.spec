@@ -13,11 +13,12 @@ BuildRequires:  perl
 BuildRequires:  perl-core
 BuildRequires:  zlib-devel
 
-%global install_root /opt/company/openssl/%{version}
+%global install_root /opt/openssl35
 
 %description
-Side-by-side OpenSSL %{version} installation. It deliberately does not replace
-the operating system OpenSSL packages, binaries or libraries.
+Side-by-side OpenSSL %{version} installation under /opt/openssl35.
+It deliberately does not replace the operating system OpenSSL packages,
+binaries or libraries.
 
 %prep
 %setup -q -n openssl-%{version}
@@ -27,28 +28,26 @@ the operating system OpenSSL packages, binaries or libraries.
     --prefix=%{install_root} \
     --openssldir=%{install_root}/ssl \
     shared zlib
+
 make -j%{?_smp_build_ncpus:%{_smp_build_ncpus}} %{?_smp_mflags}
 make test
 
 %install
 rm -rf %{buildroot}
+
 make install_sw install_ssldirs DESTDIR=%{buildroot}
 
-mkdir -p %{buildroot}/opt/company/openssl
-ln -sfn %{version} %{buildroot}/opt/company/openssl/current
-
-%post
-/sbin/ldconfig || :
-
-%postun
-/sbin/ldconfig || :
+# tsget/tsget.pl requires perl(WWW::Curl::Easy).
+# These helpers are not required for the OpenSSL runtime.
+rm -f %{buildroot}%{install_root}/ssl/misc/tsget
+rm -f %{buildroot}%{install_root}/ssl/misc/tsget.pl
 
 %files
 %license LICENSE.txt
 %doc README.md
-/opt/company/openssl/%{version}
-/opt/company/openssl/current
+/opt/openssl35
 
 %changelog
 * Mon Oct 05 2026 Company Build Engineering <build@example.company> - 3.5.9-1
-- Artifact factory package template
+- Install isolated OpenSSL under /opt/openssl35
+- Remove tsget helpers to avoid unnecessary perl(WWW::Curl::Easy) runtime dependency
