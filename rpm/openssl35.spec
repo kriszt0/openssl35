@@ -13,7 +13,7 @@ BuildRequires:  perl
 BuildRequires:  perl-core
 BuildRequires:  zlib-devel
 
-%global install_root /opt/openssl35
+%global install_root /opt/company/openssl/%{version}
 
 %description
 Side-by-side OpenSSL %{version} installation. It deliberately does not replace
@@ -34,6 +34,9 @@ make test
 rm -rf %{buildroot}
 make install_sw install_ssldirs DESTDIR=%{buildroot}
 
+mkdir -p %{buildroot}/opt/company/openssl
+ln -sfn %{version} %{buildroot}/opt/company/openssl/current
+
 %post
 /sbin/ldconfig || :
 
@@ -43,7 +46,8 @@ make install_sw install_ssldirs DESTDIR=%{buildroot}
 %files
 %license LICENSE.txt
 %doc README.md
-/opt/openssl35
+/opt/company/openssl/%{version}
+/opt/company/openssl/current
 
 %changelog
 * Mon Oct 05 2026 Company Build Engineering <build@example.company> - 3.5.9-1

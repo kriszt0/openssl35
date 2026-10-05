@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=oraclelinux:7
+ARG BASE_IMAGE=oraclelinux:7-slim
 FROM ${BASE_IMAGE}
 
 RUN yum -y install \
