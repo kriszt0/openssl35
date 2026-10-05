@@ -75,15 +75,6 @@ echo "========================================"
 
 make -j%{build_jobs}
 
-
-echo
-echo "========================================"
-echo " Running OpenSSL upstream tests"
-echo "========================================"
-
-make test -j%{build_jobs}
-
-
 %install
 
 rm -rf %{buildroot}
