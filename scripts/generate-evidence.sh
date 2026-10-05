@@ -26,7 +26,7 @@ cat > "$E/manifest.json" <<EOF
   "openssl_version": "$VERSION",
   "target_os": "Oracle Linux 7",
   "target_arch": "x86_64",
-  "install_prefix": "/opt/company/openssl/$VERSION",
+  "install_prefix": "/opt/openssl35",
   "git_commit": "$git_commit",
   "spec_sha256": "$spec_sha",
   "builder_image_id": "$builder_id",

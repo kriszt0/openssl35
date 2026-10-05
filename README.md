@@ -4,7 +4,7 @@ Azure-independent production-oriented build repository.
 
 ## Security model
 
-- OpenSSL is installed side-by-side under `/opt/company/openssl/<version>`.
+- OpenSSL is installed side-by-side under `/opt/openssl35`.
 - The Oracle Linux 7 system OpenSSL is never replaced.
 - SHA-256 is an integrity control.
 - SHA-1 is generated only as legacy audit evidence.
