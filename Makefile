@@ -1,37 +1,45 @@
-SHELL := /bin/bash
+VERSION := $(shell cat VERSION)
 
-.PHONY: preflight source build test evidence sign verify-rpm repo release dev-release clean
+# GNU make -j értékének meghatározása.
+# make build       -> JOBS=1
+# make build -j3   -> JOBS=3
+# make build -j20  -> JOBS=20
+JOBS := $(shell \
+	echo '$(MAKEFLAGS)' | \
+	sed -n 's/.*-j\([0-9][0-9]*\).*/\1/p')
 
-preflight:
+ifeq ($(strip $(JOBS)),)
+JOBS := 1
+endif
+
+.PHONY: source build test sign verify evidence repo release clean
+
+source:
 	./scripts/preflight.sh
-
-source: preflight
 	./scripts/fetch-source.sh
 	./scripts/verify-source.sh
 
 build: source
-	./scripts/build-rpm.sh
+	JOBS=$(JOBS) ./scripts/build-rpm.sh
 
-test: build
-	./scripts/test-rpm.sh
-
-evidence:
-	./scripts/generate-evidence.sh
+test:
+	JOBS=$(JOBS) ./scripts/test-rpm.sh
 
 sign:
 	./scripts/sign-rpm.sh
 
-verify-rpm:
+verify:
 	./scripts/verify-rpm.sh
+
+evidence:
+	./scripts/generate-evidence.sh
 
 repo:
 	./scripts/create-yum-repo.sh
 
-release: clean preflight source build test sign verify-rpm evidence repo
-	./scripts/assemble-release.sh
-
-dev-release: clean preflight source build test evidence
-	ALLOW_UNSIGNED=1 ./scripts/assemble-release.sh
+release: source build test sign verify evidence
+	@echo "Release completed."
 
 clean:
-	rm -rf work artifacts release
+	rm -rf work/rpmbuild
+	rm -f artifacts/openssl35-*.rpm

@@ -24,12 +24,15 @@ binaries or libraries.
 %setup -q -n openssl-%{version}
 
 %build
+
 ./Configure linux-x86_64 \
     --prefix=%{install_root} \
     --openssldir=%{install_root}/ssl \
-    shared zlib
+    --libdir=lib64 \
+    shared zlib \
+    '-Wl,-rpath,$$ORIGIN/../lib64'
 
-make -j%{?_smp_build_ncpus:%{_smp_build_ncpus}} %{?_smp_mflags}
+make %{?_smp_mflags}
 make test
 
 %install
