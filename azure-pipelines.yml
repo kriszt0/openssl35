@@ -1,0 +1,58 @@
+trigger: none
+
+parameters:
+- name: opensslVersion
+  displayName: OpenSSL version
+  type: string
+  default: '3.5.9'
+
+variables:
+  CI: 'true'
+
+stages:
+- stage: BuildAndVerify
+  jobs:
+  - job: RPM
+    pool:
+      name: Linux-Podman-Agents
+    steps:
+    - bash: |
+        sed -i "s/^OPENSSL_VERSION=.*/OPENSSL_VERSION=${{ parameters.opensslVersion }}/" config/version.env
+        ./scripts/fetch-source.sh
+        ./scripts/verify-source.sh
+        ./scripts/build-container.sh
+        ./scripts/build-rpm.sh
+        ./scripts/test-rpm.sh
+      displayName: Fetch verify build and test
+    - publish: out
+      artifact: unsigned-openssl-${{ parameters.opensslVersion }}
+
+- stage: Sign
+  dependsOn: BuildAndVerify
+  # Configure Azure DevOps Environment approval/checks for production signing.
+  jobs:
+  - deployment: SignRPM
+    environment: openssl-rpm-production-signing
+    pool:
+      name: Linux-Signing-Agents
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - download: current
+            artifact: unsigned-openssl-${{ parameters.opensslVersion }}
+          - bash: |
+              mkdir -p out
+              cp -a "$(Pipeline.Workspace)/unsigned-openssl-${{ parameters.opensslVersion }}/." out/
+              # Import signing key from an approved Key Vault/HSM-backed mechanism here.
+              ./scripts/sign-rpm.sh
+              ./scripts/make-evidence.sh
+              ./scripts/build-container.sh
+              ./scripts/create-yum-repo.sh
+            env:
+              RPM_GPG_KEY_ID: $(RPM_GPG_KEY_ID)
+              RPM_GPG_FINGERPRINT: $(RPM_GPG_FINGERPRINT)
+            displayName: Sign and create evidence
+          - publish: out
+            artifact: openssl-${{ parameters.opensslVersion }}-production

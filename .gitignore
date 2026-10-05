@@ -1,5 +1,6 @@
 work/
 out/
-infra.env
+config/checksums.env
+keys/private*
 *.key
-*.sec
+*.pem
