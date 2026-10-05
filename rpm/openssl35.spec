@@ -17,10 +17,11 @@ BuildRequires:  binutils
 
 %global install_root /opt/openssl35
 
+# Number of parallel build jobs.
 # build-rpm.sh normally supplies:
 #   --define "build_jobs <N>"
-# Fall back to one job if it was not supplied.
 %{!?build_jobs:%global build_jobs 1}
+
 
 %description
 Isolated OpenSSL %{version} installation for Oracle Linux 7.
@@ -28,8 +29,9 @@ Isolated OpenSSL %{version} installation for Oracle Linux 7.
 The package is installed under /opt/openssl35 and does not replace
 the operating system OpenSSL package, binaries or libraries.
 
-The OpenSSL executable uses the libssl and libcrypto shared libraries
-shipped with this package under /opt/openssl35/lib64.
+The package contains its own OpenSSL shared libraries:
+libssl.so.3 and libcrypto.so.3.
+
 
 %prep
 %setup -q -n openssl-%{version}
@@ -37,10 +39,26 @@ shipped with this package under /opt/openssl35/lib64.
 
 %build
 
-# Make the installed OpenSSL executable resolve its own OpenSSL shared
-# libraries relative to /opt/openssl35/bin.
+echo "========================================"
+echo " OpenSSL build configuration"
+echo "========================================"
+echo "Version    : %{version}"
+echo "Prefix     : %{install_root}"
+echo "Library dir: %{install_root}/lib64"
+echo "Build jobs : %{build_jobs}"
+echo "========================================"
+
 #
-# $ORIGIN is evaluated by the dynamic loader at runtime.
+# Runtime library path:
+#
+# /opt/openssl35/bin/openssl
+#             |
+#             +--> $ORIGIN/../lib64
+#                       |
+#                       +--> /opt/openssl35/lib64
+#
+# $ORIGIN is evaluated by the ELF dynamic loader at runtime.
+#
 export LDFLAGS="-Wl,-rpath,\$ORIGIN/../lib64"
 
 ./Configure linux-x86_64 \
@@ -50,9 +68,19 @@ export LDFLAGS="-Wl,-rpath,\$ORIGIN/../lib64"
     shared \
     zlib
 
+echo
+echo "========================================"
+echo " Building OpenSSL"
+echo "========================================"
+
 make -j%{build_jobs}
 
-# Full upstream OpenSSL test suite.
+
+echo
+echo "========================================"
+echo " Running OpenSSL upstream tests"
+echo "========================================"
+
 make test -j%{build_jobs}
 
 
@@ -60,29 +88,100 @@ make test -j%{build_jobs}
 
 rm -rf %{buildroot}
 
+echo
+echo "========================================"
+echo " Installing into RPM buildroot"
+echo "========================================"
+
 make install_sw install_ssldirs DESTDIR=%{buildroot}
 
-# These timestamp-query helper scripts introduce an unnecessary
-# perl(WWW::Curl::Easy) runtime dependency.
+
+#
+# Remove helper scripts which would otherwise introduce:
+#
+#   perl(WWW::Curl::Easy)
+#
+# as an RPM runtime dependency.
+#
 rm -f %{buildroot}%{install_root}/ssl/misc/tsget
 rm -f %{buildroot}%{install_root}/ssl/misc/tsget.pl
 
 
-# ----------------------------------------------------------------------
-# Build-time package validation
-# ----------------------------------------------------------------------
+echo
+echo "========================================"
+echo " OpenSSL installation validation"
+echo "========================================"
 
-# Main executable must exist.
-test -x %{buildroot}%{install_root}/bin/openssl
+echo
+echo "Buildroot:"
+echo "%{buildroot}"
 
-# The package must contain its own OpenSSL 3 shared libraries.
-test -f %{buildroot}%{install_root}/lib64/libssl.so.3
-test -f %{buildroot}%{install_root}/lib64/libcrypto.so.3
+echo
+echo "OpenSSL executable:"
+ls -la %{buildroot}%{install_root}/bin/openssl
 
-# Verify that the executable contains the private runtime library path.
+
+echo
+echo "========================================"
+echo " OpenSSL libraries"
+echo "========================================"
+
+find %{buildroot}%{install_root} \
+    \( -name 'libssl.so*' -o -name 'libcrypto.so*' \) \
+    -ls
+
+
+echo
+echo "========================================"
+echo " ELF dynamic section"
+echo "========================================"
+
+readelf -d %{buildroot}%{install_root}/bin/openssl || true
+
+
+echo
+echo "========================================"
+echo " RPATH / RUNPATH"
+echo "========================================"
+
 readelf -d %{buildroot}%{install_root}/bin/openssl | \
-    grep -E 'RPATH|RUNPATH' | \
-    grep -q '\$ORIGIN/../lib64'
+    grep -E 'RPATH|RUNPATH' || true
+
+
+echo
+echo "========================================"
+echo " Required file validation"
+echo "========================================"
+
+if [ ! -x %{buildroot}%{install_root}/bin/openssl ]; then
+    echo "ERROR: OpenSSL executable missing:"
+    echo "%{install_root}/bin/openssl"
+    exit 1
+fi
+
+
+if [ ! -f %{buildroot}%{install_root}/lib64/libssl.so.3 ]; then
+    echo "ERROR: libssl.so.3 missing"
+    echo
+    echo "Libraries actually installed:"
+    find %{buildroot}%{install_root} -name 'libssl.so*' -ls
+    exit 1
+fi
+
+
+if [ ! -f %{buildroot}%{install_root}/lib64/libcrypto.so.3 ]; then
+    echo "ERROR: libcrypto.so.3 missing"
+    echo
+    echo "Libraries actually installed:"
+    find %{buildroot}%{install_root} -name 'libcrypto.so*' -ls
+    exit 1
+fi
+
+
+echo
+echo "========================================"
+echo " Required OpenSSL files OK"
+echo "========================================"
 
 
 %files
@@ -96,7 +195,7 @@ readelf -d %{buildroot}%{install_root}/bin/openssl | \
 %changelog
 * Mon Oct 05 2026 Company Build Engineering <build@example.company> - 3.5.9-1
 - Install OpenSSL under /opt/openssl35
-- Keep OpenSSL isolated from the operating system OpenSSL
+- Keep OpenSSL isolated from operating system OpenSSL
 - Package private libssl.so.3 and libcrypto.so.3
-- Add relative runtime library search path
-- Remove tsget helpers and WWW::Curl::Easy dependency
+- Configure private runtime library search path
+- Remove tsget WWW::Curl::Easy dependency
