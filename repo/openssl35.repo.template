@@ -1,7 +1,8 @@
-[company-openssl35]
-name=Company OpenSSL 3.5 - OL7 x86_64
-baseurl=https://artifacts.example.company/openssl35/yum/ol7/x86_64/
+[__REPO_ID__]
+name=__REPO_NAME__
+baseurl=__REPO_BASE_URL__
 enabled=1
 gpgcheck=1
-gpgkey=https://artifacts.example.company/openssl35/RPM-GPG-KEY-COMPANY
+repo_gpgcheck=1
+gpgkey=__REPO_GPG_KEY_URL__
 sslverify=1

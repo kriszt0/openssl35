@@ -1,6 +1,0 @@
-FROM oraclelinux:7-slim
-RUN yum -y install oracle-epel-release-el7 || true; \
-    yum -y install rpm-build rpm-sign rpmdevtools gcc gcc-c++ make perl perl-core \
-      zlib-devel git curl tar gzip unzip which file findutils openssl gnupg2 createrepo \
-      ca-certificates && yum clean all
-WORKDIR /src

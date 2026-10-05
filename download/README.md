@@ -1,5 +1,8 @@
-# Offline source fallback
-If upstream download is unavailable, place one of these here:
-- openssl-<VERSION>.tar.gz
-- openssl-<VERSION>.zip
-The pipeline verifies pinned SHA-256/SHA-1 before build.
+Offline fallback directory.
+
+For VERSION=3.5.9 place exactly one of:
+  openssl-3.5.9.tar.gz
+  openssl-3.5.9.zip
+
+Do not commit unreviewed source archives to Git.
+The pipeline hashes the original input before extraction/conversion.

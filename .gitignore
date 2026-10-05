@@ -1,6 +1,12 @@
 work/
-out/
-config/checksums.env
-keys/private*
-*.key
-*.pem
+artifacts/
+release/
+config/checksums/*.env
+!config/checksums/*.env.example
+keys/upstream-gnupg/
+keys/*.key
+keys/*.gpg
+keys/*.asc
+download/*.tar.gz
+download/*.zip
+download/*.asc

@@ -1,6 +1,32 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/common.sh"
-RPM="$(find "$ROOT/out" -maxdepth 1 -name 'openssl35-*.x86_64.rpm' | head -1)"
-[[ -s "$RPM" ]] || exit 30
-podman run --rm -v "$ROOT:/src:Z" company/openssl35-builder:ol7 bash -lc "set -e; yum -y localinstall /src/out/$(basename "$RPM"); /opt/company/openssl/current/bin/openssl version -a; echo test | /opt/company/openssl/current/bin/openssl dgst -sha256; /opt/company/openssl/current/bin/openssl list -providers; rpm -V openssl35"
-echo RPM_TEST=PASS | tee "$ROOT/out/test-result.txt"
+set -euo pipefail
+source "$(dirname "$0")/lib.sh"
+load_config
+mkdir_secure "$ROOT/work/logs"
+
+RPM="$(find "$ROOT/artifacts" -maxdepth 1 -type f -name 'openssl35-*.x86_64.rpm' | head -1)"
+[[ -n "$RPM" ]] || die "binary RPM missing"
+
+podman build --pull=never \
+  --build-arg "BASE_IMAGE=$TEST_IMAGE" \
+  -t "localhost/openssl35-test:${VERSION}" \
+  -f "$ROOT/container/Containerfile.test" "$ROOT" \
+  | tee "$ROOT/work/logs/test-container-build.log"
+
+podman run --rm \
+  -v "$ROOT/artifacts:/rpms:ro,Z" \
+  "localhost/openssl35-test:${VERSION}" \
+  bash -euxo pipefail -c '
+    rpm -qpi /rpms/'"$(basename "$RPM")"'
+    rpm -qpl /rpms/'"$(basename "$RPM")"' | grep "/opt/company/openssl/'"$VERSION"'/bin/openssl"
+    yum localinstall -y /rpms/'"$(basename "$RPM")"'
+    /opt/company/openssl/'"$VERSION"'/bin/openssl version -a
+    /opt/company/openssl/'"$VERSION"'/bin/openssl list -providers
+    printf "audit-test\n" >/tmp/plain
+    /opt/company/openssl/'"$VERSION"'/bin/openssl dgst -sha256 /tmp/plain
+    /opt/company/openssl/'"$VERSION"'/bin/openssl dgst -sha1 /tmp/plain
+    test -L /opt/company/openssl/current
+  ' 2>&1 | tee "$ROOT/work/logs/rpm-test.log"
+
+echo "RPM_TEST=PASS" > "$ROOT/work/logs/test-result.env"
+log "clean OL7 RPM test PASS"

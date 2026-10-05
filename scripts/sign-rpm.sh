@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/common.sh"
-: "${RPM_GPG_KEY_ID:?RPM_GPG_KEY_ID required}"
-cat > "$HOME/.rpmmacros" <<MAC
-%_signature gpg
-%_gpg_name ${RPM_GPG_KEY_ID}
-MAC
-for f in "$ROOT"/out/*.rpm; do rpmsign --addsign "$f"; rpm -Kv "$f" | tee "${f}.signature.txt"; done
+set -euo pipefail
+source "$(dirname "$0")/lib.sh"
+load_config
+
+[[ -n "${RPM_GPG_FINGERPRINT:-}" ]] || die "RPM_GPG_FINGERPRINT is required"
+command -v rpmsign >/dev/null 2>&1 || die "rpmsign is required on signing host"
+
+for f in "$ROOT"/artifacts/*.rpm; do
+  [[ -f "$f" ]] || continue
+  rpmsign --addsign \
+    --define "_gpg_name ${RPM_GPG_FINGERPRINT}" \
+    "$f"
+done
+
+log "RPM signing completed"

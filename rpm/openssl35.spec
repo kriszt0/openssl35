@@ -1,42 +1,54 @@
 Name:           openssl35
 Version:        %{openssl_version}
-Release:        %{rpm_release}%{?dist}
-Summary:        Company isolated OpenSSL 3.5.x distribution
+Release:        1%{?dist}
+Summary:        Isolated OpenSSL %{version} for Oracle Linux 7
 License:        Apache-2.0
 URL:            https://www.openssl.org/
 Source0:        openssl-%{version}.tar.gz
-BuildRequires:  gcc, make, perl, perl-core, zlib-devel
-Requires:       zlib
 
-%global install_base /opt/company/openssl
-%global version_dir %{install_base}/%{version}
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  perl
+BuildRequires:  perl-core
+BuildRequires:  zlib-devel
+
+%global install_root /opt/company/openssl/%{version}
 
 %description
-Company-managed isolated OpenSSL build. It deliberately does not replace the Oracle Linux 7 system OpenSSL.
+Side-by-side OpenSSL %{version} installation. It deliberately does not replace
+the operating system OpenSSL packages, binaries or libraries.
 
 %prep
 %setup -q -n openssl-%{version}
 
 %build
-./Configure linux-x86_64 --prefix=%{version_dir} --openssldir=%{version_dir}/ssl shared zlib
+./Configure linux-x86_64 \
+    --prefix=%{install_root} \
+    --openssldir=%{install_root}/ssl \
+    shared zlib
 make -j%{?_smp_build_ncpus:%{_smp_build_ncpus}} %{?_smp_mflags}
 make test
 
 %install
 rm -rf %{buildroot}
-make install_sw DESTDIR=%{buildroot}
-mkdir -p %{buildroot}%{install_base}
-ln -sfn %{version} %{buildroot}%{install_base}/current
+make install_sw install_ssldirs DESTDIR=%{buildroot}
+
+mkdir -p %{buildroot}/opt/company/openssl
+ln -sfn %{version} %{buildroot}/opt/company/openssl/current
 
 %post
-ln -sfn %{version} %{install_base}/current
+/sbin/ldconfig || :
+
+%postun
+/sbin/ldconfig || :
 
 %files
 %license LICENSE.txt
 %doc README.md
-%{version_dir}
-%{install_base}/current
+/opt/company/openssl/%{version}
+/opt/company/openssl/current
 
 %changelog
-* Mon Oct 05 2026 Build Engineering <build@example.invalid> - 3.5.9-1
-- Production pipeline skeleton
+* Mon Oct 05 2026 Company Build Engineering <build@example.company> - 3.5.9-1
+- Artifact factory package template
