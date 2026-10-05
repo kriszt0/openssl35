@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+JOBS="${JOBS:-1}"
+
+[[ "$JOBS" =~ ^[1-9][0-9]*$ ]] || \
+    die "invalid JOBS value: $JOBS"
+
 set -euo pipefail
 
 source "$(dirname "$0")/lib.sh"
@@ -39,9 +45,10 @@ podman run --rm \
            ${RPMBUILD}/SPECS/
 
         rpmbuild -ba \
-            ${RPMBUILD}/SPECS/openssl35.spec \
-            --define "_topdir ${RPMBUILD}" \
-            --define "openssl_version '"$VERSION"'"
+           ${RPMBUILD}/SPECS/openssl35.spec \
+           --define "_topdir ${RPMBUILD}" \
+           --define "openssl_version '"$VERSION"'" \
+           --define "build_jobs ${JOBS}"
 
         find ${RPMBUILD}/RPMS \
             -type f \
